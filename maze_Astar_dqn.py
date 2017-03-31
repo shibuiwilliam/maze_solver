@@ -8,7 +8,7 @@
 # ### Each tile has numericals as its point. In other words, if you step on to the tile with -1, you get 1 point subtracted.
 # ### The maze has blocks to prevent you from taking the route.
 
-# In[4]:
+# In[1]:
 
 import numpy as np
 import pandas as pds
@@ -28,7 +28,7 @@ from keras import backend as K
 
 # # Maze Class
 
-# In[5]:
+# In[2]:
 
 class Maze(object):
     def __init__(self, size=10, blocks_rate=0.1):
@@ -81,7 +81,7 @@ class Maze(object):
 
 # # Maze functions
 
-# In[6]:
+# In[3]:
 
 class Field(object):
     def __init__(self, maze, start_point, goal_point):
@@ -181,10 +181,10 @@ class NodeList(list):
         del self[self.index(node)]
 
 
-# In[10]:
+# In[48]:
 
 class Aster_Solver(object):
-    def __init__(self, maze, start_point, goal_point):
+    def __init__(self, maze, start_point, goal_point, display=False):
         self.Field = maze
         self.start_point = start_point
         self.goal_point = goal_point
@@ -192,6 +192,7 @@ class Aster_Solver(object):
         self.close_list = NodeList()
         self.steps = 0
         self.score = 0
+        self.display = display
         
     def set_initial_node(self):
         node = Node(self.start_point, self.start_point, self.goal_point)
@@ -227,16 +228,20 @@ class Aster_Solver(object):
         node.fs = node.hs
         self.open_list.append(node)
         
-        while True:
-            self.steps += 1
+        while True:            
             node = min(self.open_list, key = lambda node:node.fs)
             print ("current state:  {0}".format(node.state))
-            self.Field.display(node.state)
+            
+            if self.display:
+                self.Field.display(node.state)
             
             reward, tf = self.Field.get_val(node.state)
             self.score =  self.score + reward
             print("current step: {0} \t score: {1} \n".format(self.steps, self.score))
-            if tf == True: break
+            self.steps += 1
+            if tf == True:
+                print("Goal!")
+                break
 
             self.open_list.remove_from_nodelist(node)
             self.close_list.append(node)
@@ -245,9 +250,9 @@ class Aster_Solver(object):
             self.go_next(next_actions, node)
 
 
-# In[11]:
+# In[49]:
 
-astar_Solver = Aster_Solver(maze_field, start_point, goal_point)
+astar_Solver = Aster_Solver(maze_field, start_point, goal_point, display=True)
 astar_Solver.solve_maze()
 
 
@@ -259,10 +264,10 @@ astar_Solver.solve_maze()
 # # Solving the maze in Q-learning
 # ### https://en.wikipedia.org/wiki/Q-learning
 
-# In[12]:
+# In[50]:
 
 class QLearning_Solver(object):
-    def __init__(self, maze):
+    def __init__(self, maze, display=False):
         self.Qvalue = {}
         self.Field = maze
         self.alpha = 0.2
@@ -270,6 +275,7 @@ class QLearning_Solver(object):
         self.epsilon = 0.2
         self.steps = 0
         self.score = 0
+        self.display = display
 
     def qlearn(self, greedy_flg=False):
         state = self.Field.start_point
@@ -278,11 +284,14 @@ class QLearning_Solver(object):
                 self.steps += 1
                 action = self.choose_action_greedy(state)
                 print("current state: {0} -> action: {1} ".format(state, action))
-                self.Field.display(action)
+                if self.display:
+                    self.Field.display(action)
                 reward, tf = self.Field.get_val(action)
                 self.score =  self.score + reward
                 print("current step: {0} \t score: {1}\n".format(self.steps, self.score))
-
+                if tf == True:
+                    print("Goal!")
+                    break
             else:
                 action = self.choose_action(state)    
             if self.update_Qvalue(state, action):
@@ -340,17 +349,17 @@ class QLearning_Solver(object):
                 print('\t----- next state -----')
 
 
-# In[13]:
+# In[53]:
 
 learning_count = 1000
-QL_solver = QLearning_Solver(maze_field)
+QL_solver = QLearning_Solver(maze_field, display=True)
 for i in range(learning_count):
     QL_solver.qlearn()
 
 QL_solver.dump_Qvalue()
 
 
-# In[14]:
+# In[54]:
 
 QL_solver.qlearn(greedy_flg=True)
 
@@ -368,7 +377,7 @@ QL_solver.qlearn(greedy_flg=True)
 # # Solving the maze in Deep Q-learning
 # ### https://deepmind.com/research/dqn/
 
-# In[19]:
+# In[55]:
 
 class DQN_Solver:
     def __init__(self, state_size, action_size):
@@ -440,13 +449,13 @@ class DQN_Solver:
             self.epsilon *= self.e_decay
 
 
-# In[20]:
+# In[56]:
 
 state_size = 2
 action_size = 2
 dql_solver = DQN_Solver(state_size, action_size)
 
-episodes = 10000
+episodes = 20000
 times = 1000
 
 for e in range(episodes):
@@ -461,7 +470,7 @@ for e in range(episodes):
         next_movables = maze_field.get_actions(next_state)
         dql_solver.remember_memory(state, action, reward, next_state, next_movables, done)
         if done or time == (times - 1):
-            if e % 100 == 0:
+            if e % 500 == 0:
                 print("episode: {}/{}, score: {}, e: {:.2} \t @ {}"
                         .format(e, episodes, score, dql_solver.epsilon, time))
             break
@@ -469,20 +478,20 @@ for e in range(episodes):
     dql_solver.replay_experience(32)
 
 
-# In[23]:
+# In[58]:
 
 state = start_point
 score = 0
 steps = 0
 while True:
-    maze_field.display(state)
     steps += 1
     movables = maze_field.get_actions(state)
     action = dql_solver.choose_best_action(state, movables)
+    print("current state: {0} -> action: {1} ".format(state, action))
     reward, done = maze_field.get_val(action)
+    maze_field.display(state)
     score = score + reward
     state = action
-    print("current state: {0} -> action: {1} ".format(state, action))
     print("current step: {0} \t score: {1}\n".format(steps, score))
     if done:
         maze_field.display(action)
