@@ -12,17 +12,11 @@ https://en.wikipedia.org/wiki/A*_search_algorithm
 
 Q(s,a)←Q(s,a)+α(r+γ maxa′Q(s′,a′)−Q(s,a))
 
-```math
-Q(s,a) \leftarrow Q(s,a) + \alpha \Bigl(r + \gamma\ \max_{a'} Q(s',a') - Q(s,a)\Bigr)
-```
-
 https://en.wikipedia.org/wiki/Q-learning
 
 4. Deep Q-network has DQN_solver class. The class uses deep q-network technique, the neural network enhanced style of q-learning. While Q-learning estimates optimal future value with the previous equation, Deep Q-network aims to approximate the optimal future value of reward with this equation and neural network. For the neural network, input variables are state and action, while target variable is calculated through the equation.
 
 targett=rt+γmaxa′Qθk(s′t,a′)
-
-$ {\rm{target}}^t = r_t + \gamma \max_{a'} Q_{\theta_k} (s_t',a') $
 
 https://deepmind.com/research/dqn/
 
